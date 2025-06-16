@@ -1,5 +1,6 @@
 
 add_requires("spdlog")
+add_requires("nlohmann_json")
 
 add_includedirs(".")
 
@@ -10,7 +11,7 @@ includes("p2p")
 
 target("Dandelion")
     set_kind("binary")
-    add_files("main.cpp")
+    add_files("*.cpp")
     add_deps("task_system", "p2p")
-    add_packages("spdlog")
+    add_packages("spdlog", "nlohmann_json")
     

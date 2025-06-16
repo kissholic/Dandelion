@@ -13,6 +13,12 @@
 namespace dandelion::p2p {
 
 
+void p2p_context::add_peer(ip_address const& addr) noexcept {
+    assert(0);
+}
+
+
+
 bool p2p_context::setup() noexcept {
     m_peer_manager->connect_all();
     if (m_peer_manager->empty()) {

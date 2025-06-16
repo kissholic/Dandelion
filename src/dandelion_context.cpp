@@ -97,6 +97,11 @@ bool dandelion_context::setup_peer_network(std::vector<p2p::ip_address> const& a
 }
 
 
+[[nodiscard]] std::vector<fast_file_entry> dandelion_context::load_local_file() const noexcept {
+    assert(0);
+    return {};
+}
+
 void dandelion_context::sync_file_info(std::string const& filename) noexcept {
 
 }
