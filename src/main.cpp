@@ -8,6 +8,7 @@
 #include "dandelion.h"
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
+#include "signal.h"
 
 #include <csignal>
 #include <filesystem>
@@ -60,9 +61,9 @@ bool load_config(dandelion_config& config, std::string const& filename) noexcept
     try {
         if (json_config.contains("peers")) {
             for (const auto& peer : json_config["peers"]) {
-                dandelion::p2p::ip_address addr;
-                addr.ip_addr = peer["ip"].get<std::string>();
-                addr.control_port = peer["port"].get<int>();
+                dandelion::p2p::endpoint addr;
+                addr.addr = peer["ip"].get<std::string>();
+                addr.port = peer["port"].get<int>();
                 config.peers.push_back(addr);
             }
         }
@@ -101,13 +102,8 @@ bool load_default_config(dandelion_config& config) noexcept {
 }
 
 
-static void exit_sig_handler(int sig) {
-    std::exit(sig);
-}
-
-
 static void setup_signal_handler() {
-    std::signal(SIGINT, exit_sig_handler);
+    std::signal(SIGINT, dandelion::signal_handler::invoke);
 }
 
 } // namespace

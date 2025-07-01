@@ -10,18 +10,15 @@
 #include <memory>
 #include <string>
 
-#include "address.h"
 #include "common/time.h"
+#include "p2p_socket.h"
 
 namespace dandelion::p2p {
 
-class peer_manager;
 
 class peer {
-    friend class peer_manager;
-
 public:
-    peer(ip_address const& addr) noexcept;
+    peer(endpoint const& addr) noexcept;
     ~peer() noexcept;
     peer(peer const&) = delete;
     peer& operator=(peer const&) = delete;
@@ -49,14 +46,18 @@ public:
         return m_unreachable;
     }
 
+    operator std::string() const noexcept {
+        return m_addr.addr + ":" + std::to_string(m_addr.port);
+    }
+
+
 private:
 
     int try_connect(int port) noexcept;
 
 private:
-    ip_address m_addr;
-    int m_control_fd;
-    int m_data_fd;
+    endpoint m_addr;
+    int m_handle;
     bool m_connected;
 
     bool m_unreachable;

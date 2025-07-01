@@ -11,13 +11,13 @@
 
 #include "common/task_system/task_scheduler.h"
 #include "file_entry.h"
-#include "p2p/p2p.h"
+#include "p2p/p2p_context.h"
 
 namespace dandelion {
 
 struct dandelion_config {
     int nr_woker;
-    std::vector<p2p::ip_address> roots;
+    std::vector<p2p::endpoint> roots;
     std::vector<std::string> local_files;
 };
 
@@ -44,7 +44,7 @@ public:
     void run() noexcept;
 
 private:
-    bool setup_peer_network(std::vector<p2p::ip_address> const& addrs) noexcept;
+    bool setup_peer_network(std::vector<p2p::endpoint> const& addrs) noexcept;
 
     [[nodiscard]] std::vector<fast_file_entry> load_local_file() const noexcept;
     void sync_file_info(std::string const& filename) noexcept;
@@ -55,7 +55,7 @@ private:
 
     p2p::file_table m_files;
 
-    std::vector<p2p::ip_address> m_roots;
+    std::vector<p2p::endpoint> m_roots;
 
     task_scheduler m_task_scheduler;
 };

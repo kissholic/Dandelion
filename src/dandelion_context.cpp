@@ -85,7 +85,7 @@ void dandelion_context::run() noexcept {
 }
 
 
-bool dandelion_context::setup_peer_network(std::vector<p2p::ip_address> const& addrs) noexcept {
+bool dandelion_context::setup_peer_network(std::vector<p2p::endpoint> const& addrs) noexcept {
     m_p2p_context = std::make_unique<p2p::p2p_context>();
     if (!m_p2p_context)
         return false;
@@ -93,7 +93,7 @@ bool dandelion_context::setup_peer_network(std::vector<p2p::ip_address> const& a
     for (auto& addr : addrs)
         m_p2p_context->add_peer(addr);
 
-    return m_p2p_context->setup();
+    return true;
 }
 
 
