@@ -6,13 +6,13 @@
 
 #include "dandelion.h"
 
-#include "common/task_system/task_scheduler.h"
 #include "dandelion_context.h"
 #include "p2p/p2p_context.h"
 #include "spdlog/spdlog.h"
 
 #include <csignal>
 #include <memory>
+#include "event_loop.h"
 
 
 int dandelion_main(dandelion_config& config) noexcept {
@@ -20,9 +20,6 @@ int dandelion_main(dandelion_config& config) noexcept {
     //     spdlog::error("No peers specified in the configuration.");
     //     return -1;
     // }
-
-    // dandelion::task_scheduler scheduler(1);
-    // scheduler.wait_finish();
 
     auto p2p_ctx = std::make_unique<dandelion::p2p::p2p_context>();
 

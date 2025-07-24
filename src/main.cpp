@@ -8,7 +8,7 @@
 #include "dandelion.h"
 #include "nlohmann/json.hpp"
 #include "spdlog/spdlog.h"
-#include "signal.h"
+#include "dsignal.h"
 
 #include <csignal>
 #include <filesystem>

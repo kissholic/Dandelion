@@ -12,6 +12,7 @@
 #include "common/task_system/task_scheduler.h"
 #include "file_entry.h"
 #include "p2p/p2p_context.h"
+#include "event_loop.h"
 
 namespace dandelion {
 
@@ -58,6 +59,8 @@ private:
     std::vector<p2p::endpoint> m_roots;
 
     task_scheduler m_task_scheduler;
+
+    std::unique_ptr<event_loop> m_event_loop;
 };
 
 

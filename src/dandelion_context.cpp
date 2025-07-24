@@ -17,9 +17,10 @@ namespace dandelion {
 dandelion_context::dandelion_context(dandelion_config const& config) noexcept
     : m_roots{config.roots}
     , m_task_scheduler{config.nr_woker}
+    , m_event_loop(nullptr)
 {
-    spdlog::info("dandelion context created");
     init();
+    spdlog::info("dandelion context created");
 }
 
 
@@ -77,11 +78,9 @@ void dandelion_context::run() noexcept {
         }
 
         m_p2p_context->sync_file(pending_file);
-        // m_task_scheduler.submit([]() -> task<int> { return {}; });
     }
 
-
-    // m_task_scheduler.wait_finish();
+    m_event_loop->run();
 }
 
 

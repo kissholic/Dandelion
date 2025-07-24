@@ -1,6 +1,7 @@
 
 add_requires("spdlog")
 add_requires("nlohmann_json")
+add_requires("libuv")
 
 add_includedirs(".")
 
@@ -13,5 +14,5 @@ target("Dandelion")
     set_kind("binary")
     add_files("*.cpp")
     add_deps("task_system", "p2p")
-    add_packages("spdlog", "nlohmann_json")
+    add_packages("spdlog", "nlohmann_json", "libuv")
     

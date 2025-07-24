@@ -13,6 +13,7 @@
 #include <optional>
 #include <vector>
 
+#include "common/task_system/task_scheduler.h"
 #include "common/time.h"
 #include "file_entry.h"
 #include "net_msg.h"
@@ -48,19 +49,20 @@ public:
     std::optional<time_point> query_file_modified_time(std::string const& filename) noexcept;
 
 private:
-    using net_msg_handler = std::function<void(connection&&)>;
+    using net_msg_handler = std::function<task(connection&&)>;
     void register_rpc_handlers() noexcept;
-    void invoke(connection&& conn) noexcept;
+    task invoke(connection&& conn) noexcept;
 
-    void rpc_send_heartbeat(connection&& conn) noexcept;
-    void rpc_resve_heartbeat(connection&& conn) noexcept;
-    void rpc_sync_peers(connection&& conn) noexcept;
-    void rpc_sync_files(connection&& conn) noexcept;
-    void rpc_query_files(connection&& conn) noexcept;
+    task rpc_send_heartbeat(connection&& conn) noexcept;
+    task rpc_resve_heartbeat(connection&& conn) noexcept;
+    task rpc_sync_peers(connection&& conn) noexcept;
+    task rpc_sync_files(connection&& conn) noexcept;
+    task rpc_query_files(connection&& conn) noexcept;
 
 private:
     std::unique_ptr<peer_network> m_peer_network;
     std::unique_ptr<local_server> m_local_server;
+    dandelion::task_scheduler m_scheduler;
 
     std::array<net_msg_handler, peer_msg_type::TOTAL_MSG_TYPE> m_rpc_handlers;
 };

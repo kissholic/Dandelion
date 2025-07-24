@@ -6,7 +6,7 @@
 
 
 #include "p2p_context.h"
-#include "signal.h"
+#include "dsignal.h"
 #include "spdlog/spdlog.h"
 #include "sys/socket.h"
 #include<netinet/in.h>
@@ -20,6 +20,7 @@ namespace dandelion::p2p {
 p2p_context::p2p_context() noexcept
     : m_peer_network(nullptr)
     , m_local_server(nullptr)
+    , m_scheduler(10)
 {
     register_rpc_handlers();
 }
@@ -63,66 +64,70 @@ void p2p_context::run() noexcept {
     });
     server_thread.detach();
 
-    // TODO:  Loop task scheduler
-    std::this_thread::sleep_for(std::chrono::seconds(1));
-
-    spdlog::info("P2P context is running");
+    m_scheduler.wait_finish();
 }
 
 
 void p2p_context::dispatch(connection&& conn) noexcept {
-    auto dispatch_rpc = [this](connection&& conn) {
-        this->invoke(std::move(conn));
+    auto dispatch_rpc = [this](connection&& conn) -> task {
+        co_await this->invoke(std::move(conn));
     };
 
     // Process the incoming connection in a separate thread
     // TODO: Schedule this task to the task scheduler
     std::thread rpc_thread(dispatch_rpc, std::move(conn));
     rpc_thread.detach();
+
+    m_scheduler.submit(
+        [this](auto&& conn) -> task {
+            co_await this->invoke(std::move(conn));
+        }(std::move(conn))
+    );
 }
 
 void p2p_context::add_peer(endpoint const& addr) noexcept {
     assert(0);
 }
 
-void p2p_context::invoke(connection&& conn) noexcept {
+task p2p_context::invoke(connection&& conn) noexcept {
     if (conn) [[unlikely]] {
         spdlog::error("Invalid socket file descriptor: {}", conn.fd);
-        return;
+        co_return;
     }
 
     peer_msg_type msg_type{};
     ssize_t bytes_received = recv(conn.fd, &msg_type, sizeof(msg_type), 0);
     if (bytes_received != sizeof(msg_type)) [[unlikely]] {
         spdlog::error("Failed to receive message header from socket {}", conn.fd);
-        return;
+        co_return;
     }
 
-    m_rpc_handlers[msg_type](std::move(conn));
+    co_await m_rpc_handlers[msg_type](std::move(conn));
 }
 
 
 void p2p_context::register_rpc_handlers() noexcept {
-    m_rpc_handlers[peer_msg_type::SHUTDOWN] = [](connection&& conn) {
+    m_rpc_handlers[peer_msg_type::SHUTDOWN] = [](connection&& conn) -> task {
         // TODO: Check if the connection comes from self
         spdlog::info("Received shutdown request from peer");
+        co_return;
     };
 
-    m_rpc_handlers[peer_msg_type::SYNC_PEERS] = [this](connection&& conn) {
-        this->rpc_sync_peers(std::move(conn));
+    m_rpc_handlers[peer_msg_type::SYNC_PEERS] = [this](connection&& conn) -> task {
+        co_await this->rpc_sync_peers(std::move(conn));
     };
 
-    m_rpc_handlers[peer_msg_type::SYNC_FILES] = [this](connection&& conn) {
-        this->rpc_sync_files(std::move(conn));
+    m_rpc_handlers[peer_msg_type::SYNC_FILES] = [this](connection&& conn) -> task {
+        co_await this->rpc_sync_files(std::move(conn));
     };
 
-    m_rpc_handlers[peer_msg_type::QUERY_FILES] = [this](connection&& conn) {
-        this->rpc_query_files(std::move(conn));
+    m_rpc_handlers[peer_msg_type::QUERY_FILES] = [this](connection&& conn) -> task {
+        co_await this->rpc_query_files(std::move(conn));
     };
 }
 
 
-void p2p_context::rpc_send_heartbeat(connection&& conn) noexcept {
+task p2p_context::rpc_send_heartbeat(connection&& conn) noexcept {
     // Process heartbeat message
     spdlog::info("Received heartbeat from peer");
     
@@ -133,35 +138,39 @@ void p2p_context::rpc_send_heartbeat(connection&& conn) noexcept {
     //     spdlog::error("Failed to send heartbeat response to peer on socket {}", socket_fd);
     //     return;
     // }
+
+    co_return;
 }
 
 
-void p2p_context::rpc_resve_heartbeat(connection&& conn) noexcept {
+task p2p_context::rpc_resve_heartbeat(connection&& conn) noexcept {
     // Process response to heartbeat message
     spdlog::info("Received heartbeat response from peer");
 
     // TODO: Update peer heartbeat status
+    co_return;
 }
 
 
-void p2p_context::rpc_sync_peers(connection&& conn) noexcept {
+task p2p_context::rpc_sync_peers(connection&& conn) noexcept {
     // Process sync peers message
     spdlog::info("Received sync peers message from peer");
 
-
+    co_return;
 }
 
 
-void p2p_context::rpc_sync_files(connection&& conn) noexcept {
+task p2p_context::rpc_sync_files(connection&& conn) noexcept {
     // Process sync files message
     spdlog::info("Received sync files message from peer");
-
+    co_return;
 }
 
 
-void p2p_context::rpc_query_files(connection&& connsocket) noexcept {
+task p2p_context::rpc_query_files(connection&& connsocket) noexcept {
     // Process query files message
     spdlog::info("Received query files message from peer");
+    co_return;
 }
 
 

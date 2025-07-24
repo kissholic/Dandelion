@@ -11,7 +11,7 @@
 #include <netinet/in.h>
 #include "p2p_context.h"
 #include "p2p_socket.h"
-#include "signal.h"
+#include "dsignal.h"
 
 
 namespace dandelion::p2p {
