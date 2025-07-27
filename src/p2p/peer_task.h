@@ -6,7 +6,9 @@
 
 #pragma once
 
+#include "cdc/cdc_chunk.h"
 #include "common/task_system/task.h"
+#include "task_kind.h"
 #include "uv.h"
 
 
@@ -14,35 +16,31 @@
 namespace dandelion::p2p {
 
 
-enum class peer_task_kind : uint32_t {
-	REQUEST_FILE_INFO,
-	REQUEST_FILE_DATA,
-
-	TOTAL_KIND,
-};
-
-
 class peer_task;
-using task_constructor = peer_task*();
+using task_constructor = peer_task*(uv_handle_t*, uv_buf_t const* buf, ssize_t size);
 
 
 class peer_task : public task {
 public:
-	peer_task() noexcept {}
-	virtual ~peer_task() noexcept {}
+	peer_task(uv_handle_t* handle) noexcept : m_handle(handle) {}
+	virtual ~peer_task() noexcept;
 
 	virtual void process(char const* buff, ssize_t size) noexcept {}
+
+protected:
+	uv_handle_t* m_handle;
 };
 
 
 template<typename T>
 class peer_task_crtp : public peer_task {
 public:
-	peer_task_crtp() noexcept : peer_task() {}
+	peer_task_crtp(uv_handle_t* handle) noexcept : peer_task(handle) {}
+	virtual ~peer_task_crtp() noexcept = default;
 
 	static task_constructor* get_task_constructor() noexcept {
-		return []() -> peer_task* {
-			return new T();
+		return [](uv_handle_t* handle, uv_buf_t const* buf, ssize_t size) -> peer_task* {
+			return new T(handle, buf, size);
 		};
 	}
 
@@ -54,7 +52,7 @@ public:
 
 class peer_task_request_file_info : public peer_task_crtp<peer_task_request_file_info> {
 public:
-	peer_task_request_file_info() noexcept = default;
+	peer_task_request_file_info(uv_handle_t* handle, uv_buf_t const* buf, ssize_t size) noexcept;
 	virtual ~peer_task_request_file_info() noexcept = default;
 
 	void process(char const* buff, ssize_t size) noexcept override;
@@ -62,12 +60,18 @@ public:
 	static peer_task_kind get_task_kind() noexcept {
 		return peer_task_kind::REQUEST_FILE_INFO;
 	}
+
+private:
+	struct response_file_info {
+		std::string file_name;
+		std::unique_ptr<std::vector<cdc::cdc_chunk>> chunks;
+	};
 };
 
 
 class peer_task_request_file_data : public peer_task_crtp<peer_task_request_file_data> {
 public:
-	peer_task_request_file_data() noexcept = default;
+	peer_task_request_file_data(uv_handle_t* handle, uv_buf_t const* buf, ssize_t size) noexcept;
 	virtual ~peer_task_request_file_data() noexcept = default;
 
 	void process(char const* buff, ssize_t size) noexcept override;

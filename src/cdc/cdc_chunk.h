@@ -24,8 +24,8 @@ constinit unsigned long long const MAX_CHUNK_SIZE = 4_MB;
 
 struct cdc_chunk {
     hash_t hash;
-    size_t size;
-    size_t offset;
+    uint64_t size;
+    uint64_t offset;
 };
 
 } // namespace dandelion::cdc

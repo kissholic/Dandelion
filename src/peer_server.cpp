@@ -4,6 +4,7 @@
  * Copyright (c) 2025 kissholic. All wrongs reserved.
  */
 
+#include <bit>
 #include "peer_server.h"
 #include <spdlog/spdlog.h>
 #include <sys/socket.h>
@@ -17,8 +18,9 @@ constexpr const int kMaxBacklog = 128;
 std::array<p2p::task_constructor*, static_cast<size_t>(p2p::peer_task_kind::TOTAL_KIND)> peer_server::m_peer_tasks;
 
 
-peer_server::peer_server(event_loop* loop, std::string_view ip, int port) noexcept
-	: m_event_loop(loop)
+peer_server::peer_server(file_manager* file_manager, event_loop* loop, std::string_view ip, int port) noexcept
+	: m_file_manager(file_manager)
+	, m_event_loop(loop)
 	, m_ip(ip)
 	, m_port(port)
 {
@@ -47,6 +49,7 @@ void peer_server::on_new_connection(uv_stream_t* server, int status) noexcept {
 	}
 
 	uv_tcp_t* peer = static_cast<uv_tcp_t*>(malloc(sizeof(uv_tcp_t)));
+	uv_handle_set_data((uv_handle_t*)peer, uv_handle_get_data((uv_handle_t*)server));
 
 	event_loop* loop = static_cast<peer_server*>(uv_handle_get_data((uv_handle_t*)server))->m_event_loop;
 	uv_tcp_init(loop->get_loop(), peer);
@@ -71,22 +74,27 @@ void peer_server::alloc_buffer(uv_handle_t* handle, size_t suggested_size, uv_bu
 void peer_server::dispatch(uv_stream_t* stream, ssize_t nread, const uv_buf_t* buf) noexcept {
 	if (!stream->data) {
 		// Check if the message length is valid
-		if (nread < 4) {
+		if (nread < sizeof(p2p::peer_task_kind)) {
 			spdlog::error("Invalid message length");
 			uv_close((uv_handle_t*)stream, nullptr);
 			free(buf->base);
 			return;
 		}
 	
-		uint32_t* data = reinterpret_cast<uint32_t*>(buf->base);
-		auto message_type = static_cast<p2p::peer_task_kind>(data[0]);
+		uint32_t kind = 0;
+		uint8_t* data = reinterpret_cast<uint8_t*>(buf->base);
+		if (std::endian::native == std::endian::little)
+			kind = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+		else
+			kind = data[3] | (data[2] << 8) | (data[1] << 16) | (data[0] << 24);
 
+		auto message_type = static_cast<p2p::peer_task_kind>(kind);
 		if (message_type >= p2p::peer_task_kind::TOTAL_KIND) {
 			spdlog::error("Invalid message type");
 			return;
 		}
 
-		stream->data = m_peer_tasks[(uint32_t)message_type]();
+		stream->data = m_peer_tasks[(uint32_t)message_type]((uv_handle_t*)stream, buf, nread);
 	}
 
 	auto task = static_cast<p2p::peer_task*>(stream->data);

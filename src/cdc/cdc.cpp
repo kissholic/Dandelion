@@ -107,8 +107,8 @@ static size_t estimate_chunk_num(size_t const length) noexcept {
 }
 
 
-std::vector<cdc_chunk> cdc(std::byte const* data, size_t const length) noexcept {
-    std::vector<cdc_chunk> chunks;
+std::unique_ptr<std::vector<cdc_chunk>> cdc(char const* data, size_t const length) noexcept {
+    std::unique_ptr<std::vector<cdc_chunk>> chunks = std::make_unique<std::vector<cdc_chunk>>();
 
     if (!data) {
         spdlog::error("cdc: data is nullptr");
@@ -122,13 +122,13 @@ std::vector<cdc_chunk> cdc(std::byte const* data, size_t const length) noexcept 
 
     size_t const total_file_size = length;
     int estimated_chunk_num = estimate_chunk_num(total_file_size);
-    chunks.reserve(estimated_chunk_num);
+    chunks->reserve(estimated_chunk_num);
 
     hash_t hash_value;
     std::uint32_t pattern = 0;
     std::int64_t pre_cut_offset = -1;
     for (std::int64_t offset = 0; offset <= total_file_size - sizeof(int); ++offset) {
-        std::byte byte = data[offset];
+        char byte = data[offset];
         pattern = (pattern << 8) | (unsigned char)byte;
         hash_value = hash_value xor gear64[(unsigned char)byte];
 
@@ -136,7 +136,7 @@ std::vector<cdc_chunk> cdc(std::byte const* data, size_t const length) noexcept 
             if (offset - pre_cut_offset < MIN_CHUNK_SIZE)
                 continue;
 
-            chunks.emplace_back(hash_value, offset - pre_cut_offset, pre_cut_offset);
+            chunks->emplace_back(hash_value, offset - pre_cut_offset, pre_cut_offset);
 
             pattern = 0;
             hash_value = 0;
@@ -145,7 +145,7 @@ std::vector<cdc_chunk> cdc(std::byte const* data, size_t const length) noexcept 
     }
 
     if (pre_cut_offset != (total_file_size - 1)) {
-        chunks.emplace_back(hash_value, total_file_size - pre_cut_offset - 1, total_file_size - 1);
+        chunks->emplace_back(hash_value, total_file_size - pre_cut_offset - 1, total_file_size - 1);
     }
 
     return chunks;
